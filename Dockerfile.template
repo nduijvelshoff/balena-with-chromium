@@ -1,30 +1,31 @@
 FROM balenalib/%%BALENA_MACHINE_NAME%%-debian:stretch-run
 
 # Install XORG
-RUN install_packages xserver-xorg=1:7.7+19 \
+RUN install_packages xserver-xorg \
   xserver-xorg-input-evdev \
   xinit \
   xfce4 \
-  xfce4-terminal \
   x11-xserver-utils \
   dbus-x11 \
-  matchbox-keyboard \
   xterm
 
+# Adding buster source to install chromium 83 instead on 73
+RUN echo "deb http://deb.debian.org/debian buster main" >> /etc/apt/sources.list
+RUN install_packages chromium
 
 # Disable screen from turning it off
 RUN echo "#!/bin/bash" > /etc/X11/xinit/xserverrc \
   && echo "" >> /etc/X11/xinit/xserverrc \
-  && echo 'exec /usr/bin/X -s 0 dpms' >> /etc/X11/xinit/xserverrc 
+  && echo 'exec /usr/bin/X -s 0 dpms' >> /etc/X11/xinit/xserverrc
 
-# Setting working directory
-WORKDIR /usr/src/app
+# Creating non-root user to run chromium
+RUN useradd -ms /bin/bash non-root
+WORKDIR /home/non-root
 
-COPY . ./
+COPY start.sh ./.start
+COPY chromium.sh ./.chromium
 
 ENV UDEV=1
-
-# Avoid requesting XFCE4 question on X start
 ENV XFCE_PANEL_MIGRATE_DEFAULT=1
 
-CMD ["bash", "start_x86.sh"]
+CMD ["bash", ".start"]
